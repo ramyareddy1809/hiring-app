@@ -15,13 +15,13 @@ pipeline {
         }
         stage('Docker Push') {
             steps {
-                withCredentials([string(credentialsId: 'docker-hub', variable: 'hubPwd')]) {
-                    sh "docker login -u ramyabojjala1809 -p ${hubPwd}"
+                withDockerRegistry(credentialsId: 'dockerhub') {
+                    sh "docker login -u ramyabojjala1809 -p Ramya123$"
                     sh "docker push ramyabojjala1809/hiring-app:$BUILD_NUMBER"
                 }
             }
         }
-        stage('Checkout K8S manifest SCM'){
+      stage('Checkout K8S manifest SCM'){
             steps {
               git branch: 'main', url: 'https://github.com/betawins/Hiring-app-argocd.git'
             }
