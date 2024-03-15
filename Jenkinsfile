@@ -11,14 +11,30 @@ pipeline {
                 sh "docker build . -t ramyabojjala1809/hiring-app:$BUILD_NUMBER"
             }
         }
-        stage('Docker Push') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-token', usernameVariable: 'hubUser', passwordVariable: 'hubPwd')]) {
-                    sh "docker login -u $hubUser -p $hubPwd"
-                    sh "docker push ramyabojjala1809/hiring-app:$BUILD_NUMBER"
-                }
+        // stage('Docker Push') {
+        //     steps {
+        //         withCredentials([usernamePassword(credentialsId: 'docker-token', usernameVariable: 'hubUser', passwordVariable: 'hubPwd')]) {
+        //             sh "docker login -u $hubUser -p $hubPwd"
+        //             sh "docker push ramyabojjala1809/hiring-app:$BUILD_NUMBER"
+        //         }
+        //     }
+        // }
+        stage('Pushing Image') {
+          environment {
+                   registryCredential = 'docker-token'
+               }
+          steps{
+            script {
+              docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
+                  steps{
+                      sh "docker push ramyabojjala1809/hiring-app:$BUILD_NUMBER"
+                  }
+                  
+                  
+              }
             }
-        }
+          }
+        }      
         stage('Checkout K8S manifest SCM') {
             steps {
                 git branch: 'main', url: 'https://github.com/betawins/Hiring-app-argocd.git'
