@@ -1,0 +1,266 @@
+ RHEL upgrade process:
+
+
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html-single/upgrading_from_rhel_7_to_rhel_8/index --> Upgrade from RHEL 7 to RHEL 8 using LEAPP.
+
+Pre-Checks:
+-----------
+1) sosreport
+2) Ensure complete backup of the server
+3) Take the snapshot from the VMWare.
+4) Check whether the Console is working properly or not.
+4) uname -r, cat /etc/redhat-release, df -hT, cat /etc/fstab, ip a, netstat -nr, uptime, date
+
+
+*****************************************************************
+
+Upgrade from RHEL 6 to RHEL 7:
+*******************************
+Yes, it is possible to upgrade from RHEL 6 to RHEL 7. The upgrade is fully supported if your system meets the following criteria:
+1) Your system must have the latest RHEL 6.10 packages installed.
+2) Your system must be using the latest RHEL 6.10 release.
+
+Red Hat Enterprise Linux 7 (RHEL 7) is the first major release that offers in-place upgrades from the earlier RHEL major release (RHEL 6) to a new major release of RHEL 7 operating system.
+
+Note: Make sure to back up your entire system to avoid any data loss and also before you perform an upgrade on the live system, you should clone the system and do the upgrade procedure on the clone. This will allow you to prepare for an upgrade without risking the production system.
+
+How to upgrade from Red Hat Enterprise Linux 6.10 to Red Hat Enterprise Linux 8 using the redhat-upgrade-tool and Leapp utilities.
+
+The upgrade process involves two-stages:
+1) Upgrade your system from RHEL 6.10 to RHEL 7.6.
+2) Upgrading from RHEL 7.6 to RHEL 8.
+
+
+
+
+Prerequisites
+
+Known issues
+After updating the kernel, /boot/grub/grub.conf is not changed, although /etc/grub.conf is changed. - Red Hat Customer Portal
+Issue
+After updating the kernel, /boot/grub/grub.conf is not changed, although /etc/grub.conf is changed.
+
+check the symbolic link exists before starting an upgrade:
+# ls -l /etc/grub.conf
+lrwxrwxrwx. 1 root root 20 Mar  8 15:55 /etc/grub.conf -> /boot/grub/grub.conf
+
+Resolution (if /etc/grub.conf and /boot/grub/grub.conf are different files):
+cp /etc/grub.conf /boot/grub/grub.conf
+rm /etc/grub.conf
+ln -s /boot/grub/grub.conf /etc/grub.conf
+
+Step-1:
+--------
+The following RHEL 6 to RHEL 7 upgrade instruction is fully supported if your RHEL system using the latest RHEL 6.10 release. If not, update your system to have the latest RHEL 6.10 packages installed using the yum command as shown.
+# yum update -y
+# reboot
+
+Next, you need to enable the Extras repository to subscribe your system to the repository containing the upgrade tools.
+# subscription-manager repos --enable rhel-6-server-extras-rpms
+# subscription-manager repos --enable rhel-6-server-optional-rpms
+#subscription-manager repos --enable=rhel-6-server-els-rpms
+
+Now you need to install Preupgrade Assistant tools that check your system for anything that might unfortunately affect the success of your upgrade.
+# yum -y install preupgrade-assistant preupgrade-assistant-ui preupgrade-assistant-el6toel7 redhat-upgrade-tool
+
+Once installed, you can run the Preupgrade Assistant to check the in-place upgrade possibility limitations of the system. 
+A short summary of results is printed on the screen and detailed reports are saved to the /root/preupgrade directory as result.html by default.
+# preupg -v
+Open results.html file in a browser and resolve the issues pointed by the Preupgrade Assistant during the assessment. 
+Then re-run preupg command to scan the system again, and if there are no new problems found, proceed further as explained below.
+
+
+Now download the latest RHEL 7.6 ISO image file from the RedHat Download Center using a Red Hat Subscription or a Red Hat Evaluation Subscription.
+Once you’ve downloaded RHEL 7.6 ISO, run the following command to upgrade to RHEL 7.6 using the Red Hat upgrade tool and reboot after the upgrade process is completed. 
+Make sure to specify the location of an ISO image in the below command.
+# redhat-upgrade-tool --iso rhel-server-7.6-x86_64-dvd.iso --cleanup-post
+# reboot
+
+To finish the installation, you must reboot the system to start installing upgrades. 
+The upgrade is a time-consuming process and it depends on your system’s configuration and amount of data it downloads.
+
+If everything goes as well, the system will reboot to Red Hat Enterprise Linux 7, and you can begin checking that the system works properly.
+
+Also, check that your system is properly registered to Red Hat subscription.
+# yum repolist --> It should display rhel-7 repositories.
+
+
+If no RHEL 7 repositories found, you need to resubscribe your RHEL 7 system to Red Hat subscription using the following commands.
+# subscription-manager remove --all
+# subscription-manager unregister
+# subscription-manager register
+# subscription-manager attach --auto
+
+Finally, upgrade all your new RHEL 7 packages to their latest version.
+
+# yum update -y
+# reboot
+
+*******************************************************************
+
+Upgrade from RHEL 7 to RHEL 8:
+*******************************
+Red Hat has announced the release of Red Hat Enterprise Linux 8.0, which comes with GNOME 3.28 as the default desktop environment and runs on Wayland.
+
+This article describes instructions on how to upgrade from Red Hat Enterprise Linux 7 to Red Hat Enterprise Linux 8 using the Leapp utility.
+
+An in-place upgrade to RHEL 8 is presently supported only on systems meeting the following requirements:
+1) RHEL 7.6 installed
+2) The Server variant
+3) The Intel 64 architecture
+4) At least 100MB of free space available on the boot partition (mounted at /boot).
+
+1. Make sure you are using RHEL 7.6 version, if you’re using RHEL version older than RHEL 7.6, you need to update your RHEL system to RHEL 7.6 version using following yum command.
+# yum update
+
+Note: Make sure your RHEL 7 system has been successfully registered using the Red Hat Subscription Manager to enable system repositories and perform a full system update.
+2. Make sure your RHEL 7 system has the Red Hat Enterprise Linux Server subscription attached. If not, run the following commands to automatically assign the subscription to the system and verify the subscription.
+
+# subscription-manager attach --auto
+# subscription-manager list --installed
+
+3. Now set the RHEL 7.6 version as a beginning point for the upgrade using the following command.
+# subscription-manager release --set 7.6
+
+4. If you have used yum-plugin-versionlock plug-in to lock packages to a specific version, make sure to remove the lock by running the following command.
+# yum versionlock clear
+
+5. Update all software packages to the latest version and reboot the system.
+# yum update
+# reboot
+
+6. Once system booted, make sure to enable the Extras repository for software package dependencies.
+# subscription-manager repos --enable rhel-7-server-extras-rpms
+
+7. Install the Leapp utility.
+# yum install leapp
+
+8. Now download additional required data files, which is required by the Leapp utility for a successful upgrade from RHEL 7 to RHEL 8 and place them in the /etc/leapp/files/ directory.
+# cd /etc/leapp/files/ 
+# wget https://access.redhat.com/sites/default/files/attachments/leapp-data3.tar.gz
+# tar -xf leapp-data3.tar.gz 
+# rm leapp-data3.tar.gz
+
+
+9. Make sure to take a full RHEL 7.6 system backup, before performing the upgrade using this article: backup and restore RHEL system with the dump/restore commands.
+
+Upgrading from RHEL 7 TO RHEL 8
+
+10. Now start the RHEL 7 system upgrade process using the following command.
+                                  leapp preupgrade --target 8.8     —--> if need RHEL8.8
+                                  leapp upgrade --target=8.8      —--> if need RHEL8.8
+
+# leapp upgrade   —---> if you need the latest RHEL8.*
+
+Once you run the upgrade process, the Leapp utility gathers data about your system, tests the upgradability, and creates a pre-upgrade report in the /var/log/leapp/leapp-report.txt file.
+
+If the system is upgradable, Leapp downloads required data and create an RPM transaction for the upgrade.
+
+If the system is not upgradeable, Leapp closes the upgrade operation and creates a record explaining the issue and a solution in the /var/log/leapp/leapp-report.txt file.
+
+11. Once upgrade finish, manually reboot the system.
+# reboot
+
+At this stage, the system boots into an RHEL 8-based initial RAM disk image, initramfs. Leapp upgrades all software packages and automatically reboots to the RHEL 8 system.
+
+12. Now Log in to the RHEL 8 system and change the SELinux mode to enforcing.
+# setenforce 1
+
+13. After the upgrade completes, verify that the current OS version is Red Hat Enterprise Linux 8.
+# cat /etc/redhat-release
+Red Hat Enterprise Linux release 8.0 (Ootpa)
+
+14. Check the OS kernel version of Red Hat Enterprise Linux 8.
+# uname -r
+4.18.0-80.el8.x86_64
+
+15. Verify that the correct Red Hat Enterprise Linux 8 is installed.
+# subscription-manager list --installed
+
+16. Finally, verify that network services are functional by connecting to a Red Hat Enterprise Linux 8 server using SSH.
+# ssh root@192.168.0.101
+# hostnamectl
+
+
+
+
+
+
+
+
+
+*********************************************************************************
+
+
+
+RHEL 7.1 to 7.2:
+-----------------
+
+Minor Upgrade Process :
+-----------------------
+Example :
+YUM Server: yumserver.example.com
+Client server: linuxguru.example.com
+Upgrading from RHEL 7.1 to 7.2
+
+YUM Server Side Configuration :
+-------------------------------
+Add the client machine IP and hostname in /etc/hosts file.
+Step - 1: Create an YUM configuration file on YUM server.
+In Minor upgrade, we should have latest version(RHEL 7.2) ISO Image dvd drive and mount it on the YUM server.
+# mount /dev/sr0 /mnt
+
+Copy all the content available /mnt where iso image is mounted to /var/ftp/pub.
+# cd /mnt
+# cp -rfv * /var/ftp/pub
+
+Modify the YUM repository details in /etc/yum.conf file.
+Create a repo file inside the /etc/yum.repos.d/. The filename can be anything, the extension of the file should be .repo.
+# vi /etc/yum.repos.d/yumclient.repo
+[myrepo123]
+name=RHEL 7.2 YUM server(Any name we can keep)
+baseurl=file:///var/ftp/pub --> The O.S related ISO image files are copied to this location.
+gpgcheck=0
+enabled=1
+
+# yum clean all
+# yum repolist --> To list out the available repositories in the YUM server from the YUM client. If this command is working fine, nothing but the YUM client is communicating fine with the YUM server.
+
+
+Client Side Configuration :
+----------------------------
+We need to do the YUM configuration file which helps to communicate with the YUM server and it's repositories.
+Check the kernel version(uname -r) before upgrading, 
+Check the O.S version before upgrade.
+Yum update
+
+# cd /etc/yum.repos.d
+# vi yumclient1.repo
+[myrepo3456]
+name=RHEL 7.2 YUM Client(Any name)
+baseurl=ftp://192.168.0.112/pub  --> (YUM server IP and location of the repository inside the YUM server is /var/ftp/pub, the base location of the ftp is /var/ftp, so that we are giving /pub/ instead of 
+/var/ftp/pub/)
+gpgcheck=0
+enabled=1
+
+Step - 2: After everything is ready, we have to check whether YUM client is cumminicating properly or not with YUM Server.
+# yum clean all
+# yum repolist --> To list out the available repositories in the YUM server from the YUM client. If this command is working fine, nothing but the YUM client is communicating fine with the YUM server.
+# uname -r -->To check the current Kernel Version.
+O/P: 3.10.0-229.el7.x86_64
+# yum list available --> To check the available packages, also helps to check the communication between YUM client and YUM server.
+
+# yum list installed
+# yum update --> It will proceed to do the Minor upgrade.
+It will give the count of new packages which is going to install and also the count of dependent packages, and also it gives the total number of packages going to upgrade.
+After upgrading, the O.S version is showing 7.2, but the Kernel version is showing same as previous.
+To get the updated kernel version, we need to reboot the server.
+
+# reboot
+
+# uname -r --> After rebooting, the kernel version will change.
+O/P: 3.10.0-327.el7.x86_64 
+# yum history list  --> To get the history id.
+# yum history info <id> --> To check what are all the packages updated or installed.
+
+
